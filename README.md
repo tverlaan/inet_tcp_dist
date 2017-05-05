@@ -1,6 +1,6 @@
 # InetTcp_dist
 
-**TODO: Add description**
+A library that implements (to some level) another way of setting up Erlang Distribution. You need to use a custom EPMD module as well. There are two options available in this repo which work to some extent. It's still a work in progress.
 
 ## Installation
 
@@ -19,4 +19,13 @@ be found at [https://hexdocs.pm/inet_tcp_dist](https://hexdocs.pm/inet_tcp_dist)
 
 ## Usage
 
-`iex --erl "-proto_dist Elixir.InetTcp -start_epmd false -epmd_module Elixir.EAPMD.MDNS -pa _build/dev/lib/dns/ebin _build/dev/lib/inet_tcp_dist/ebin" --sname foo`
+```
+mix compile
+
+iex --erl \
+  "-proto_dist Elixir.InetTcp
+  -start_epmd false
+  -epmd_module Elixir.EAPMD.MDNS
+  -pa _build/dev/lib/dns/ebin _build/dev/lib/inet_tcp_dist/ebin" \
+  --sname foo
+```
