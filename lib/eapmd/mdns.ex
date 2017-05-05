@@ -104,6 +104,7 @@ defmodule EAPMD.MDNS do
   end
 
   def handle_call({:ip, ip}, _from, %State{my_node: my_node} = state) do
+    query()
     {:reply, :ok, %State{state | ip: ip, my_node: %EAPMD.Node{my_node | ip: ip}}}
   end
 
@@ -122,7 +123,7 @@ defmodule EAPMD.MDNS do
   def handle_info({:udp, _socket, ip, _port, packet}, state) do
     record = DNS.Record.decode(packet)
     state = case record.header.qr do
-      true -> handle_response(ip, record, state)
+      true  -> handle_response(ip, record, state)
       false -> handle_request(ip, record, state)
     end
     {:noreply, state}
