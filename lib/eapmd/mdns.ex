@@ -1,10 +1,18 @@
 defmodule EAPMD.MDNS do
+  @moduledoc """
+  This is a Proof of Concept. Using `InetTcp_dist` you can create your own discovery module!
+
+  This is a simple MDNS implementation focused on node discovery. It implements the
+  default EPMD callbacks and a new introduced callback which is `address_and_port_please/1`.
+  This new callback is used by the `InetTcp_dist` module.
+
+  It sends and receives MDNS queries and stores discovered nodes in its state.
+  """
   use GenServer
   require Logger
 
   @mdns_group {224,0,0,251}
-  @port 53531
-  @port2 53530
+  @port 5353
   @request_packet %DNS.Record{
     header: %DNS.Header{},
     qdlist: []
@@ -64,7 +72,14 @@ defmodule EAPMD.MDNS do
     GenServer.call(__MODULE__, :nodes)
   end
 
-  def set_ip(ip) do
+  def set_ip(ip) when is_binary(ip) do
+    ip
+    |> String.split(".")
+    |> Enum.map(&String.to_integer/1)
+    |> List.to_tuple
+    |> set_ip
+  end
+  def set_ip(ip) when is_tuple(ip) do
     GenServer.call(__MODULE__, {:ip, ip})
   end
 
@@ -116,7 +131,7 @@ defmodule EAPMD.MDNS do
     packet = %DNS.Record{@request_packet | :qdlist => [
       %DNS.Query{domain: to_char_list(namespace), type: :ptr, class: :in}
     ]}
-    :gen_udp.send(state.udp, @mdns_group, @port2, DNS.Record.encode(packet))
+    :gen_udp.send(state.udp, @mdns_group, @port, DNS.Record.encode(packet))
     {:noreply,  %State{state | :queries => Enum.uniq([namespace | state.queries])}}
   end
 
@@ -203,7 +218,7 @@ defmodule EAPMD.MDNS do
   defp send_service_response(resources, _record, state) do
     packet = %DNS.Record{@response_packet | :anlist => resources}
     Logger.debug("Sending Packet: #{inspect packet}")
-    :gen_udp.send(state.udp, @mdns_group, @port2, DNS.Record.encode(packet))
+    :gen_udp.send(state.udp, @mdns_group, @port, DNS.Record.encode(packet))
     state
   end
 
