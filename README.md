@@ -1,5 +1,8 @@
 # InetTcp_dist
 
+[![Build Status](https://travis-ci.org/tverlaan/inet_tcp_dist.svg?branch=master)](https://travis-ci.org/tverlaan/inet_tcp_dist)
+[![Hex.pm Version](http://img.shields.io/hexpm/v/inet_tcp_dist.svg?style=flat)](https://hex.pm/packages/inet_tcp_dist)
+
 A library that implements (to some level) another way of setting up Erlang Distribution. You need to use a custom EPMD module as well. There are two options available in this repo which work to some extent. It's still a work in progress.
 
 ## Installation

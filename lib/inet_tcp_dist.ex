@@ -10,7 +10,7 @@ defmodule InetTcp_dist do
   Most callbacks of this module fall back on Erlang's `:inet_tcp_dist`. For the ones it doesn't it
   has an equal implementation.
 
-  It only supports `:shortnames' currently, which makes sense since we're not using DNS.
+  It only supports `:shortnames` currently, which makes sense since we're not using DNS.
   """
   require Record
   require Logger
