@@ -134,10 +134,11 @@ defmodule InetTcp_dist do
 
   defp get_domain(node) do
     node
-    |> to_string
-    |> String.split("@", parts: 2)
-    |> tl
-    |> hd
     |> to_char_list
+    |> Enum.reduce([], fn
+      (?@, _)   -> []
+      (x, acc)  -> [x|acc]
+    end)
+    |> Enum.reverse
   end
 end
