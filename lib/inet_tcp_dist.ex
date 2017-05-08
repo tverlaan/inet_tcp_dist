@@ -45,24 +45,27 @@ defmodule InetTcp_dist do
     mod = :net_kernel.epmd_module()
 
     # epmd module should expose this new function to give address and port
-    {ip, port} = mod.address_and_port_please(node)
+    case mod.address_and_port_please(node) do
+      {{_,_,_,_} = ip, port} when port > 0 ->
+        # start distribution timer (for timeout etc)
+        timer = :dist_util.start_timer(setup_time)
 
-    # start distribution timer (for timeout etc)
-    timer = :dist_util.start_timer(setup_time)
+        # connection options
+        options = connect_options([{:active, false}, {:packet, 2}])
 
-    # connection options
-    options = connect_options([{:active, false}, {:packet, 2}])
-
-    # start connecting and distribution
-    :inet_tcp.connect(ip, port, options)
-    |> case do
-      {:ok, my_socket} ->
-        hsdata = create_hs_data(kernel, node, ip, port, type, my_node, my_socket, timer)
-        Logger.debug "#{inspect hsdata}"
-        :dist_util.handshake_we_started(hsdata)
+        # start connecting and distribution
+        :inet_tcp.connect(ip, port, options)
+        |> case do
+          {:ok, my_socket} ->
+            hsdata = create_hs_data(kernel, node, ip, port, type, my_node, my_socket, timer)
+            :dist_util.handshake_we_started(hsdata)
+          _ ->
+            Logger.warn "Connection to other node (#{inspect node}) failed"
+            :dist_util.shutdown(__MODULE__, 41, node)
+        end
       _ ->
-        Logger.error "Connection to other node failed"
-        :dist_util.shutdown(__MODULE__, 41, node)
+        Logger.warn "address_and_port_please/1 (#{inspect node}) failed"
+        exit(:shutdown)
     end
   end
 
