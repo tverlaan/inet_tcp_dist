@@ -1,10 +1,10 @@
 defmodule EAPMD.Local do
   @moduledoc """
   Sample of an EAPMD client that just checks if the name is known on this node.
-  You can manually add nodes to this register to make it work.
+  You can manually register nodes to make it work. Make sure to register the full
+  node name, eg _foo@bar_.
   """
 
-  defstruct [:name, :port, :ip]
   # erl_distribution wants us to start a worker process.  We don't
   # need one, though.
   def start_link do
@@ -42,21 +42,20 @@ defmodule EAPMD.Local do
   end
 
   def handle_call({:register, name, port}, _f, state) do
-    new_node = %__MODULE__{name: name, port: port, ip: {127,0,0,1}}
+    new_node = %EAPMD.Node{name: name, port: port, ip: {127,0,0,1}}
     creation = :rand.uniform 3
     {:reply, {:ok, creation}, [new_node | state]}
   end
 
   def handle_call({:address_and_port_please, node}, _f, state) do
-    name = node
-      |> to_string
-      |> String.split("@")
-      |> hd
+    reply = state
+            |> Enum.find(&(&1.name == node))
+            |> case do
+                %EAPMD.Node{ip: ip, port: port} -> {ip, port}
+                _                               -> {{0,0,0,0}, -1}
+            end
 
-    %__MODULE__{port: port, ip: ip} = state
-      |> Enum.find(fn(x) -> x.name == name end)
-
-    {:reply, {ip, port}, state}
+    {:reply, reply, state}
   end
 
 end
