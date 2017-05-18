@@ -2,14 +2,17 @@ defmodule InetTcp_dist.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :inet_tcp_dist,
-     version: "0.1.1",
-     elixir: "~> 1.4",
-     build_embedded: Mix.env == :prod,
-     start_permanent: Mix.env == :prod,
-     description: description(),
-     package: package(),
-     deps: deps()]
+    [
+      app: :inet_tcp_dist,
+      version: "0.1.1",
+      elixir: "~> 1.4",
+      build_embedded: Mix.env == :prod,
+      start_permanent: Mix.env == :prod,
+      description: description(),
+      package: package(),
+      deps: deps(),
+      source_url: "https://github.com/tverlaan/inet_tcp_dist",
+    ]
   end
 
   # Configuration for the OTP application
