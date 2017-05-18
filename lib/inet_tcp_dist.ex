@@ -15,8 +15,8 @@ defmodule InetTcp_dist do
   require Record
   require Logger
 
-  Record.defrecord :hs_data, Record.extract(:hs_data, from_lib: "kernel/include/dist_util.hrl")
-  Record.defrecord :net_address, Record.extract(:net_address, from_lib: "kernel/include/net_address.hrl")
+  Record.defrecordp :hs_data, Record.extract(:hs_data, from_lib: "kernel/include/dist_util.hrl")
+  Record.defrecordp :net_address, Record.extract(:net_address, from_lib: "kernel/include/net_address.hrl")
 
   def listen(name) do
     :inet_tcp_dist.listen name
