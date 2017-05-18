@@ -29,6 +29,7 @@ defmodule EAPMD.MDNS do
   }
 
   defmodule State do
+    @moduledoc false
     defstruct udp: nil, # udp socket
               ip: {0,0,0,0}, # my ip
               namespace: '_epmd._tcp.local',
@@ -92,14 +93,18 @@ defmodule EAPMD.MDNS do
     {:ok, hostname} = :inet.gethostname()
 
     tld = :inet.get_rc()
-      |> Keyword.get(:domain, 'local')
+          |> Keyword.get(:domain, 'local')
 
-    domain = hostname ++ '.' ++ tld
+    domain =  [hostname | ['.' | tld]]
+              |> List.flatten()
 
-    # STORE OWN DNS RECORDS
+    nodename =  [name, "@", hostname]
+                |> Enum.join()
+                |> String.to_atom()
+
+    my_node = %EAPMD.Node{my_node | port: port, domain: domain, name: nodename}
+
     {:ok, udp} = open(state)
-
-    my_node = %EAPMD.Node{my_node | port: port, domain: domain, name: name}
 
     # Need to return a "creation" number between 1 and 3.
     creation = :rand.uniform 3
@@ -107,20 +112,21 @@ defmodule EAPMD.MDNS do
   end
 
   def handle_call({:address_and_port_please, nodename}, _f, state) do
-    [name, hostname] = nodename
-      |> to_string
-      |> String.split("@", parts: 2)
+    reply = state.nodes
+            |> Enum.find(&(&1.name == nodename))
+            |> case do
+                %EAPMD.Node{ip: ip, port: port} -> {ip, port}
+                _                               -> {{0,0,0,0}, -1}
+            end
 
-    %EAPMD.Node{ip: ip, port: port} = Enum.find(state.nodes, fn(x) ->
-      x.name == String.to_atom(name) && x.domain == to_char_list(hostname <> ".local")
-    end)
-
-    {:reply, {ip, port}, state}
+    {:reply, reply, state}
   end
 
   def handle_call({:ip, ip}, _from, %State{my_node: my_node} = state) do
+    # Update name as well, it might have changed when IP has changed
+    my_node = %EAPMD.Node{my_node | ip: ip, name: Node.self()}
     query()
-    {:reply, :ok, %State{state | ip: ip, my_node: %EAPMD.Node{my_node | ip: ip}}}
+    {:reply, :ok, %State{state | ip: ip, my_node: my_node}}
   end
 
   def handle_call(:nodes, _from, state) do
@@ -170,7 +176,7 @@ defmodule EAPMD.MDNS do
   end
 
   def handle_node(%DNS.Resource{:type => :srv, :data => {_, _, port, name}}, node) do
-    %EAPMD.Node{node | :port => port, :name => to_string(name)}
+    %EAPMD.Node{node | :port => port, :name => name}
   end
 
   def handle_node(_r, node) do
@@ -194,7 +200,7 @@ defmodule EAPMD.MDNS do
         type: :a,
         ttl: 120,
         data: state.my_node.ip,
-        domain: to_char_list(state.my_node.domain)
+        domain: state.my_node.domain
       },
       %DNS.Resource{
         class: :in,
