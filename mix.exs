@@ -4,7 +4,7 @@ defmodule InetTcp_dist.Mixfile do
   def project do
     [
       app: :inet_tcp_dist,
-      version: "0.1.2",
+      version: "0.1.3",
       elixir: "~> 1.4",
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,

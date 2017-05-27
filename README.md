@@ -12,7 +12,7 @@ by adding `inet_tcp_dist` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
-  [{:inet_tcp_dist, "~> 0.1.1"}]
+  [{:inet_tcp_dist, "~> 0.1.3"}]
 end
 ```
 
