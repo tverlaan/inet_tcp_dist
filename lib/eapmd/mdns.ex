@@ -104,11 +104,9 @@ defmodule EAPMD.MDNS do
 
     my_node = %EAPMD.Node{my_node | port: port, domain: domain, name: nodename}
 
-    {:ok, udp} = open(state)
-
     # Need to return a "creation" number between 1 and 3.
     creation = :rand.uniform 3
-    {:reply, {:ok, creation}, %State{state | udp: udp, my_node: my_node}}
+    {:reply, {:ok, creation}, %State{state | my_node: my_node}}
   end
 
   def handle_call({:address_and_port_please, nodename}, _f, state) do
@@ -125,8 +123,10 @@ defmodule EAPMD.MDNS do
   def handle_call({:ip, ip}, _from, %State{my_node: my_node} = state) do
     # Update name as well, it might have changed when IP has changed
     my_node = %EAPMD.Node{my_node | ip: ip, name: Node.self()}
-    query()
-    {:reply, :ok, %State{state | ip: ip, my_node: my_node}}
+
+    {:ok, udp} = open(state)
+
+    {:reply, :ok, %State{state | ip: ip, my_node: my_node, udp: udp}}
   end
 
   def handle_call(:nodes, _from, state) do
@@ -228,7 +228,7 @@ defmodule EAPMD.MDNS do
     state
   end
 
-  defp open(_state) do
+  defp open(%State{udp: nil}) do
     udp_options = [
       :binary,
       active:          true,
@@ -240,6 +240,10 @@ defmodule EAPMD.MDNS do
     ]
 
     :gen_udp.open(@port, udp_options)
+  end
+  defp open(state) do
+    :gen_udp.close(state.udp)
+    open(%State{ state | udp: nil})
   end
 
 end
