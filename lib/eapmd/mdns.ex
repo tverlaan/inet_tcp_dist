@@ -151,7 +151,6 @@ defmodule EAPMD.MDNS do
   end
 
   def handle_response(_ip, record, state) do
-    Logger.debug("Got Response: #{inspect record}")
     new_node = Enum.reduce(record.anlist ++ record.arlist, %EAPMD.Node{}, fn(r, acc) -> handle_node(r, acc) end)
     %State{state | nodes: Enum.uniq_by([new_node | state.nodes], fn(%EAPMD.Node{name: n}) -> n end)}
   end
@@ -184,8 +183,6 @@ defmodule EAPMD.MDNS do
   end
 
   def handle_request(_ip, record, state) do
-    Logger.debug("Got Query: #{inspect record}")
-
     Enum.reduce(record.qdlist, [], fn(x, acc) ->
       generate_response(x, acc, state)
     end)
@@ -223,7 +220,6 @@ defmodule EAPMD.MDNS do
   defp send_service_response([], _, state), do: state
   defp send_service_response(resources, _record, state) do
     packet = %DNS.Record{@response_packet | :anlist => resources}
-    Logger.debug("Sending Packet: #{inspect packet}")
     :gen_udp.send(state.udp, @mdns_group, @port, DNS.Record.encode(packet))
     state
   end
