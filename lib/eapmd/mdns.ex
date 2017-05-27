@@ -182,6 +182,7 @@ defmodule EAPMD.MDNS do
     node
   end
 
+  def handle_request(ip, _, %State{ ip: ip } = state), do: state
   def handle_request(_ip, record, state) do
     Enum.reduce(record.qdlist, [], fn(x, acc) ->
       generate_response(x, acc, state)
