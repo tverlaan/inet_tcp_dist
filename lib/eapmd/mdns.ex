@@ -13,6 +13,7 @@ defmodule EAPMD.MDNS do
 
   @mdns_group {224,0,0,251}
   @port 5353
+  @propagate_timer 120_000
   @request_packet %DNS.Record{
     header: %DNS.Header{},
     qdlist: []
@@ -126,6 +127,8 @@ defmodule EAPMD.MDNS do
 
     {:ok, udp} = open(state)
 
+    send self(), :propagate
+
     {:reply, :ok, %State{state | ip: ip, my_node: my_node, udp: udp}}
   end
 
@@ -149,6 +152,16 @@ defmodule EAPMD.MDNS do
     end
     {:noreply, state}
   end
+
+  def handle_info(:propagate, state) do
+    send_service_response(state)
+
+    Process.send_after(self(), :propagate, @propagate_timer)
+
+    {:noreply, state}
+  end
+
+  def handle_info(_, s), do: {:noreply, s}
 
   def handle_response(_ip, record, state) do
     new_node = Enum.reduce(record.anlist ++ record.arlist, %EAPMD.Node{}, fn(r, acc) -> handle_node(r, acc) end)
@@ -184,14 +197,22 @@ defmodule EAPMD.MDNS do
 
   def handle_request(ip, _, %State{ ip: ip } = state), do: state
   def handle_request(_ip, record, state) do
-    Enum.reduce(record.qdlist, [], fn(x, acc) ->
-      generate_response(x, acc, state)
-    end)
-    |> send_service_response(record, state)
+    Enum.find(record.qdlist, &(&1.domain == state.namespace))
+    |> case do
+        nil -> state
+        _   -> send_service_response(state)
+    end
   end
 
-  defp generate_response(_, acc, %State{ip: {0,0,0,0}}), do: acc
-  defp generate_response(%DNS.Query{domain: domain}, [], %State{namespace: domain} = state) do
+  defp send_service_response(%State{udp: nil} = state), do: state
+  defp send_service_response(state) do
+    resources = generate_response(state)
+    packet = %DNS.Record{@response_packet | :anlist => resources}
+    :gen_udp.send(state.udp, @mdns_group, @port, DNS.Record.encode(packet))
+    state
+  end
+
+  defp generate_response(state) do
     [
       %DNS.Resource{
         class: :in,
@@ -216,14 +237,6 @@ defmodule EAPMD.MDNS do
       }
     ]
   end
-  defp generate_response(_,acc,_), do: acc
-
-  defp send_service_response([], _, state), do: state
-  defp send_service_response(resources, _record, state) do
-    packet = %DNS.Record{@response_packet | :anlist => resources}
-    :gen_udp.send(state.udp, @mdns_group, @port, DNS.Record.encode(packet))
-    state
-  end
 
   defp open(%State{udp: nil}) do
     udp_options = [
@@ -238,6 +251,7 @@ defmodule EAPMD.MDNS do
 
     :gen_udp.open(@port, udp_options)
   end
+
   defp open(state) do
     :gen_udp.close(state.udp)
     open(%State{ state | udp: nil})
