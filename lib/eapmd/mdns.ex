@@ -138,7 +138,7 @@ defmodule EAPMD.MDNS do
 
   def handle_cast({:query, namespace}, state) do
     packet = %DNS.Record{@request_packet | :qdlist => [
-      %DNS.Query{domain: to_char_list(namespace), type: :ptr, class: :in}
+      %DNS.Query{domain: to_charlist(namespace), type: :ptr, class: :in}
     ]}
     :gen_udp.send(state.udp, @mdns_group, @port, DNS.Record.encode(packet))
     {:noreply,  %State{state | :queries => Enum.uniq([namespace | state.queries])}}
